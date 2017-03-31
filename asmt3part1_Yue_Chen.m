@@ -108,3 +108,5 @@ for video_number = 1:1:10
     end
 end
 
+disp(finalset);
+
