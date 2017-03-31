@@ -23,15 +23,88 @@
 %57-59  Ankle Right
 %60-62  Foot Right
 
-trainning_data = dlmread('traindata_labeled.txt', ' ');
-[m, n] = size(trainning_data);
-person1 = zero(4, 20);
+%open the file
+fileID = fopen('traindata_labeled.txt', 'r');
 
-%loop through file for person 1, extract distance from all points to Hip
-%Center
-%column number for points are multiples of 3
-for i = 1:4
-    for j = 1:20
-       person1(i,j) = eudistance(j*3, j*3+1, j*3+2, trainning_data(i,36), trainning_data(i,37), trainning_data(i,38));
+%hold the extracted data for each person per video
+dataset = cell(1,20);
+
+%start with person one and loop through all 5
+person_number = 1;
+while person_number <= 5
+    %for each person go through 4 videos
+    video_number = 1;
+    while video_number <= 4
+        %get the frist two values
+        person_frame = fscanf(fileID, '%d %d', 2);
+        %make 2 tempary arrays
+        currentset = zeros(1,person_frame(2));
+        temparray = zeros(1,20);
+        i = 1;
+        %loop through all the frames of the video
+        while i <= person_frame(2)
+            %get data from file for one frame
+            trainning_data = fscanf(fileID, '%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f', 60);
+            %get distance of each point to hip center
+            for j = 1:20
+                temparray(j) = eudistance(trainning_data(j*3-2), trainning_data(j*3-1), trainning_data(j*3), trainning_data(34),trainning_data(35),trainning_data(36));
+            end
+            %find the mean of the points
+            currentset(i) = mean(temparray);
+            i = i + 1;
+        end
+        %store the final set
+        dataset{(person_number -1)*4+video_number} = currentset;
+        video_number = video_number + 1;
+    end
+    person_number = person_number + 1;
+end
+%finish the trainning data set
+fclose(fileID);
+
+%open the unknown file
+fileID = fopen('Test_data_unlabeled.txt', 'r');
+%start the unlabled dataset
+dataset_unknown = cell(1, 10);
+video_number = 1;
+while video_number <= 10
+        %get the number of frames
+        person_frame = fscanf(fileID, '%d', 1);
+        %make 2 tempary arrays
+        currentset = zeros(1,person_frame);
+        temparray = zeros(1,20);
+        i = 1;
+        %loop through all the frames of the video
+        while i <= person_frame
+            %get data from file for one frame
+            trainning_data = fscanf(fileID, '%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f', 60);
+            %get distance of each point to hip center
+            for j = 1:20
+                temparray(j) = eudistance(trainning_data(j*3-2), trainning_data(j*3-1), trainning_data(j*3), trainning_data(34),trainning_data(35),trainning_data(36));
+            end
+            %find the mean of the points
+            currentset(i) = mean(temparray);
+            i = i + 1;
+        end
+        %store the final set
+        dataset_unknown{video_number} = currentset;
+        video_number = video_number + 1;
+end
+
+finalset = zeros(10, 2);
+for video_number = 1:1:10
+    finalset(video_number, 2) = 100;
+    for data = 1:1:20
+        Asize = size(dataset_unknown{video_number});
+        Bsize = size(dataset{data});
+        temparray = zeros(Asize);
+        for j = 1:1:min(Asize(2), Bsize(2))
+            temparray(j) = abs(dataset_unknown{video_number}(j) - dataset{data}(j));
+        end
+        if mean(temparray) < finalset(video_number, 2)
+            finalset(video_number, 2) = mean(temparray);
+            finalset(video_number, 1) = ceil(data/4);
+        end
     end
 end
+
